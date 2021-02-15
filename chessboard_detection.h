@@ -34,6 +34,7 @@ bool is_vertical(cv::Vec2f& line, float threshold);
 void split_lines_into_hv(std::vector<LineWrapper> &lines, std::vector<LineWrapper> &h_lines, std::vector<LineWrapper> &v_lines);
 //void overlay_lines(cv::Mat& img, std::vector<cv::Vec2f>& lines, cv::Scalar color);
 void overlay_lines(cv::Mat& img, std::vector<LineWrapper>& lines, cv::Scalar color);
+void overlay_markers(cv::Mat& img, std::vector<std::vector<cv::Vec2f>>& points, cv::Scalar color);
 cv::Mat process_img(cv::Mat img);
 template<typename T> void trim_vector(std::vector<T>& v, int size);
 std::vector<LineWrapper> remove_duplicate_lines(std::vector<LineWrapper> &lines);
@@ -43,3 +44,4 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<LineWrapper> &lin
 bool intersect(cv::Vec2f line_a, cv::Vec2f line_b, cv::Vec2f &out);
 bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min, float xy_max);
 std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width = 0.8, float accepted_max_width = 1.5);
+std::vector<std::vector<cv::Vec2f>> segment_intersections(std::vector<LineWrapper> h_lines, std::vector<LineWrapper> v_lines);

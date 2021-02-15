@@ -134,6 +134,15 @@ void overlay_lines(cv::Mat& img, std::vector<LineWrapper>& lines, cv::Scalar col
     }
 }
 
+void overlay_markers(cv::Mat& img, std::vector<std::vector<cv::Vec2f>>& points, cv::Scalar color)
+{
+    for (auto& v : points)
+        for(auto& point : v)
+        {
+            cv::drawMarker(img, cv::Point(point[0], point[1]), color, cv::MARKER_CROSS, 20, 2);
+        }
+}
+
 bool are_duplicates(cv::Vec2f &line_a, cv::Vec2f &line_b, float rho_threshold, float theta_threshold)
 {
     auto [rho_a, theta_a] = line_a.val;
@@ -420,6 +429,28 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
     return result_line_wrappers;
 }
 
+std::vector<std::vector<cv::Vec2f>> segment_intersections(std::vector<LineWrapper> h_lines, std::vector<LineWrapper> v_lines)
+{
+    std::vector<std::vector<cv::Vec2f>> result;
+    result.reserve(h_lines.size());
+
+    for(auto& h_line : h_lines)
+    {
+        std::vector<cv::Vec2f> intersections;
+        intersections.reserve(v_lines.size());
+
+        for(auto& v_line : v_lines)
+        {
+            cv::Vec2f intersection;
+            intersect(v_line.value, h_line.value, intersection);
+            intersections.push_back(intersection);
+        }
+        result.push_back(intersections);
+    }
+
+    return result;
+}
+
 cv::Mat process_img(cv::Mat img)
 {
     cv::Mat temp;
@@ -462,8 +493,13 @@ cv::Mat process_img(cv::Mat img)
     overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     cv::hconcat(output_image1, temp, output_image1);
 
+    auto intersections = segment_intersections(h_lines, v_lines);
+
+    overlay_markers(temp, intersections, cv::Scalar(255, 0, 0));
+    cv::hconcat(output_image1, temp, output_image1);
+
     cv::Mat output_image;
-    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 512, cv::BORDER_CONSTANT);
+//    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 512, cv::BORDER_CONSTANT);
     cv::vconcat(output_image0, output_image1, output_image);
     return output_image;
 }
