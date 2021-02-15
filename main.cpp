@@ -7,7 +7,7 @@
 
 void process_camera_feed()
 {
-    auto cap = cv::VideoCapture(2);
+    auto cap = cv::VideoCapture(0);
     if(!cap.isOpened())
     {
         std::cout << "Unable to process camera feed!\n";

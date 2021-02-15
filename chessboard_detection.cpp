@@ -54,7 +54,7 @@ cv::Mat auto_canny(cv::Mat img, float sigma)
     cv::Canny(img, edges, lower, upper);
 
     cv::dilate(edges, edges, cv::Mat(), cv::Point(-1, -1), 2);
-    cv::erode(edges, edges, cv::Mat(), cv::Point(-1, -1), 2);
+    cv::erode(edges, edges, cv::Mat(), cv::Point(-1, -1), 1);
 
     return edges;
 }
@@ -81,7 +81,7 @@ std::vector<cv::Vec2f> find_lines(cv::Mat edges)
 
 float normalize_angle(float angle)
 {
-    return std::fmod(std::fmod(angle, M_PI) + M_PI, M_PI);
+    return std::fmod(angle, M_PI);
 }
 
 bool is_horizontal(cv::Vec2f& line, float threshold)
@@ -166,7 +166,7 @@ std::vector<LineWrapper> remove_duplicate_lines(std::vector<LineWrapper> &lines)
     for (int i = 0; i < lines_size; i++)
     {
         auto& line = lines[i];
-        if ( std::all_of(lines.begin(), lines.begin() + i, [&](auto other_line){return !are_duplicates(line.value, other_line.value, 5, 5*M_PI/180);}) )
+        if ( std::all_of(lines.begin(), lines.begin() + i, [&](auto other_line){return !are_duplicates(line.value, other_line.value, 5, 5.0f*M_PI/180.0f);}) )
         {
             result.push_back(line);
         }
@@ -429,11 +429,11 @@ cv::Mat process_img(cv::Mat img)
     auto output_image1 = img.clone();
 
     auto simplified_image = simplify_image(img, 3, cv::Size(2, 6), 5);
+    auto edges = auto_canny(simplified_image, 0.33f);
 
-    cv::cvtColor(simplified_image, temp, cv::COLOR_GRAY2BGR);
+    cv::cvtColor(edges, temp, cv::COLOR_GRAY2BGR);
     cv::hconcat(output_image0, temp, output_image0);
 
-    auto edges = auto_canny(simplified_image, 0.33f);
     auto lines = find_lines(edges);
     auto line_wrappers = wrap_lines(lines);
 
@@ -457,11 +457,13 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_suspiciously_narrow_lines(h_lines, 512/2, false, 0.7, 2.5);
     v_lines = remove_suspiciously_narrow_lines(v_lines, 512/2, true, 0.7, 2.5);
 
-    overlay_lines(img, v_lines, cv::Scalar(0, 255, 0));
-    overlay_lines(img, h_lines, cv::Scalar(0, 0, 255));
+    temp = img.clone();
+    overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
+    overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
+    cv::hconcat(output_image1, temp, output_image1);
 
     cv::Mat output_image;
-    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 2*512, cv::BORDER_CONSTANT);
+    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 512, cv::BORDER_CONSTANT);
     cv::vconcat(output_image0, output_image1, output_image);
     return output_image;
 }
