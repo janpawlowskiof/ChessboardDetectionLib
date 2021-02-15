@@ -24,6 +24,8 @@ struct LineWrapper
     float offset_to_next = INFINITY;
 };
 
+extern float DEBUG_MEDIAN;
+
 int median(cv::Mat& input);
 cv::Mat auto_canny(cv::Mat img, float sigma);
 cv::Mat simplify_image(cv::Mat img, float limit, cv::Size grid, int iters);

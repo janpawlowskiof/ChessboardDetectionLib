@@ -35,6 +35,9 @@ void process_camera_feed()
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             float fps = 1000000.0f / std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 
+            std::string median_text = "Median: " + std::to_string(DEBUG_MEDIAN);
+            cv::putText(img, median_text, cv::Point(30, 60), cv::FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2);
+
             std::string fps_text = std::to_string(fps) + " fps";
             cv::putText(img, fps_text, cv::Point(30, 30), cv::FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2);
         }

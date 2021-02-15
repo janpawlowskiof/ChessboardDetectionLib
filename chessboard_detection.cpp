@@ -6,6 +6,8 @@
 // Created by eg4l on 10.02.2021.
 //
 
+float DEBUG_MEDIAN = 0.0f;
+
 template<typename T>
 void trim_vector(std::vector<T>& v, int size)
 {
@@ -372,6 +374,8 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
         line_wrapper.position_at_center = (line_wrapper.position_at_min + line_wrapper.position_at_max) / 2;
     }
 
+    line_wrappers.erase(std::remove_if(line_wrappers.begin(), line_wrappers.end(), [](LineWrapper& line){return max_non_inf(line.offset_from_prev, line.offset_to_next) < 20;}));
+
     std::sort(line_wrappers.begin(),
               line_wrappers.end(),
               [](const LineWrapper& line_a, const LineWrapper& line_b){return line_a.position_at_center < line_b.position_at_center;}
@@ -390,10 +394,12 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
 
     std::sort(gaps.begin(),
               gaps.end(),
-              [](const float a, const float b){return a > b;}
+              std::greater<>()
     );
 
     float median_gap = gaps[gaps.size()/2];
+    DEBUG_MEDIAN = median_gap;
+    std::cout << "Median gap is " << median_gap << "\n";
 
     std::vector<LineWrapper> result_line_wrappers;
     result_line_wrappers.reserve(line_wrappers.size());
@@ -485,8 +491,8 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_intersecting_lines(h_lines, false);
     v_lines = remove_intersecting_lines(v_lines, true);
 
-    h_lines = remove_suspiciously_narrow_lines(h_lines, 512/2, false, 0.7, 2.5);
-    v_lines = remove_suspiciously_narrow_lines(v_lines, 512/2, true, 0.7, 2.5);
+    h_lines = remove_suspiciously_narrow_lines(h_lines, 512/2, false, 0.75, 2.5);
+    v_lines = remove_suspiciously_narrow_lines(v_lines, 512/2, true, 0.75, 2.5);
 
     temp = img.clone();
     overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
