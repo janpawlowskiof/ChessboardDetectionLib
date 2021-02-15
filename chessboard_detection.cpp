@@ -71,10 +71,12 @@ cv::Mat simplify_image(cv::Mat img, float limit, cv::Size grid, int iters)
     return img;
 }
 
-void find_lines(cv::Mat edges, std::vector<cv::Vec2f>& lines)
+std::vector<cv::Vec2f> find_lines(cv::Mat edges)
 {
+    std::vector<cv::Vec2f> lines;
     cv::HoughLines(edges, lines, 1, M_PI/180.0f, 30);
     trim_vector(lines, 200);
+    return lines;
 }
 
 float normalize_angle(float angle)
@@ -94,19 +96,19 @@ bool is_vertical(cv::Vec2f& line, float threshold)
     return (0 <= theta && theta <= threshold) || (M_PI - threshold <= theta && theta <= M_PI);
 }
 
-void split_lines_into_hv(std::vector<cv::Vec2f>& lines, std::vector<cv::Vec2f>& h_lines, std::vector<cv::Vec2f>& v_lines)
+void split_lines_into_hv(std::vector<LineWrapper> &lines, std::vector<LineWrapper> &h_lines, std::vector<LineWrapper> &v_lines)
 {
     h_lines.reserve(50);
     v_lines.reserve(50);
 
     for(auto& line : lines)
     {
-        if(is_horizontal(line, 15.0f*M_PI/180.0f))
+        if(is_horizontal(line.value, 15.0f*M_PI/180.0f))
         {
             if(h_lines.size() < 50)
                 h_lines.push_back(line);
         }
-        else if(is_vertical(line, 15.0f*M_PI/180.0f))
+        else if(is_vertical(line.value, 15.0f*M_PI/180.0f))
         {
             if(v_lines.size() < 50)
                 v_lines.push_back(line);
@@ -154,9 +156,9 @@ bool are_duplicates(cv::Vec2f &line_a, cv::Vec2f &line_b, float rho_threshold, f
     return (std::abs(rho_diff) < theta_threshold && abs(rho_a - rho_b) < rho_threshold);
 }
 
-std::vector<cv::Vec2f> remove_duplicate_lines(std::vector<cv::Vec2f>& lines)
+std::vector<LineWrapper> remove_duplicate_lines(std::vector<LineWrapper> &lines)
 {
-    std::vector<cv::Vec2f> result;
+    std::vector<LineWrapper> result;
     result.reserve(lines.size());
 
     auto lines_size = lines.size();
@@ -164,7 +166,7 @@ std::vector<cv::Vec2f> remove_duplicate_lines(std::vector<cv::Vec2f>& lines)
     for (int i = 0; i < lines_size; i++)
     {
         auto& line = lines[i];
-        if ( std::all_of(lines.begin(), lines.begin() + i, [&](cv::Vec2f other_line){return !are_duplicates(line, other_line, 5, 5*M_PI/180);}) )
+        if ( std::all_of(lines.begin(), lines.begin() + i, [&](auto other_line){return !are_duplicates(line.value, other_line.value, 5, 5*M_PI/180);}) )
         {
             result.push_back(line);
         }
@@ -195,7 +197,7 @@ bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min,
     return xy_min < intersection[0] and intersection[0] < xy_max and xy_min < intersection[1] and intersection[1] < xy_max;
 }
 
-std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines, bool are_vertical)
+std::vector<LineWrapper> remove_intersecting_lines(std::vector<LineWrapper> &lines, bool are_vertical)
 {
     if (lines.empty())
         return std::vector<LineWrapper>();
@@ -333,6 +335,15 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
     return certain_lines_wrappers;
 }
 
+std::vector<LineWrapper> wrap_lines(std::vector<cv::Vec2f> &lines)
+{
+    std::vector<LineWrapper> result;
+    result.reserve(lines.size());
+    for(auto& line : lines)
+        result.push_back({line});
+    return result;
+}
+
 float max_non_inf(float a, float b)
 {
     if(a == INFINITY)
@@ -346,8 +357,6 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
 {
     if (line_wrappers.size() < 2)
         return line_wrappers;
-//    if len(line_wrappers) < 2:
-//    return lines
 
     for (auto &line_wrapper : line_wrappers)
     {
@@ -358,26 +367,11 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
               line_wrappers.end(),
               [](const LineWrapper& line_a, const LineWrapper& line_b){return line_a.position_at_center < line_b.position_at_center;}
     );
-//    for line_wrapper in line_wrappers:
-//    if are_vertical:
-//        line_wrapper.position = intersection(line_wrapper.value, [[center_position, np.pi/2]])[0]
-//    else:
-//    line_wrapper.position = intersection(line_wrapper.value, [[center_position, 0.0]])[1]
-//
-//    line_wrappers = sorted(line_wrappers, key=lambda x: x.position)
 
     for(int i = 1; i < line_wrappers.size(); i++)
     {
         line_wrappers[i-1].offset_to_next = line_wrappers[i].offset_from_prev = line_wrappers[i].position_at_center - line_wrappers[i - 1].position_at_center;
     }
-
-//    for index in range(1, len(line_wrappers)):
-//    line_wrappers[index].offset_from_prev = line_wrappers[index].position - line_wrappers[index - 1].position
-//
-//# marcin nie bij, ja wiem, że liczę dwa razy to samo
-//    for index in range(0, len(line_wrappers) - 1):
-//    line_wrappers[index].offset_to_next = line_wrappers[index + 1].position - line_wrappers[index].position
-//
 
     std::vector<float> gaps;
     gaps.reserve(line_wrappers.size()-1);
@@ -391,8 +385,6 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
     );
 
     float median_gap = gaps[gaps.size()/2];
-
-//    median_gap = np.median([line_wrapper.offset_from_prev for line_wrapper in line_wrappers[1:]])
 
     std::vector<LineWrapper> result_line_wrappers;
     result_line_wrappers.reserve(line_wrappers.size());
@@ -426,47 +418,50 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
     }
 
     return result_line_wrappers;
-//
-//    result_lines = []
-//
-//    for line_wrapper in line_wrappers:
-//    if (line_wrapper.offset_from_prev and accespted_min_width < line_wrapper.offset_from_prev/median_gap < accespted_max_width)\
-//                or (line_wrapper.offset_to_next and accespted_min_width < line_wrapper.offset_to_next/median_gap < accespted_max_width):
-//    result_lines.append(line_wrapper)
-//
-//# if there are more than 9 lines, some must be unnecessary
-//    if len(result_lines) > 9:
-//        result_lines = sorted(result_lines, key=lambda x: x.offset_from_prev or x.offset_to_next, reverse=True)[:9]
-//        result_lines = sorted(result_lines, key=lambda x: x.position)
-//
-//    return np.array([line_wrapper.value for line_wrapper in result_lines])
 }
 
 cv::Mat process_img(cv::Mat img)
 {
+    cv::Mat temp;
+
     cv::resize(img, img, cv::Size(512, 512));
+    auto output_image0 = img.clone();
+    auto output_image1 = img.clone();
+
     auto simplified_image = simplify_image(img, 3, cv::Size(2, 6), 5);
 
+    cv::cvtColor(simplified_image, temp, cv::COLOR_GRAY2BGR);
+    cv::hconcat(output_image0, temp, output_image0);
+
     auto edges = auto_canny(simplified_image, 0.33f);
+    auto lines = find_lines(edges);
+    auto line_wrappers = wrap_lines(lines);
 
-    std::vector<cv::Vec2f> lines;
-    find_lines(edges, lines);
+    temp = img.clone();
+    overlay_lines(temp, line_wrappers, cv::Scalar(255, 255, 255));
+    cv::hconcat(output_image0, temp, output_image0);
 
-    std::vector<cv::Vec2f> h_lines;
-    std::vector<cv::Vec2f> v_lines;
-    split_lines_into_hv(lines, h_lines, v_lines);
+    std::vector<LineWrapper> h_lines;
+    std::vector<LineWrapper> v_lines;
+    split_lines_into_hv(line_wrappers, h_lines, v_lines);
 
     h_lines = remove_duplicate_lines(h_lines);
     v_lines = remove_duplicate_lines(v_lines);
 
-    auto h_line_wrappers = remove_intersecting_lines(h_lines, false);
-    auto v_line_wrappers = remove_intersecting_lines(v_lines, true);
+    overlay_lines(output_image1, v_lines, cv::Scalar(0, 255, 0));
+    overlay_lines(output_image1, h_lines, cv::Scalar(0, 0, 255));
 
-    h_line_wrappers = remove_suspiciously_narrow_lines(h_line_wrappers, 512/2, false, 0.7, 2.5);
-    v_line_wrappers = remove_suspiciously_narrow_lines(v_line_wrappers, 512/2, true, 0.7, 2.5);
+    h_lines = remove_intersecting_lines(h_lines, false);
+    v_lines = remove_intersecting_lines(v_lines, true);
 
-    overlay_lines(img, v_line_wrappers, cv::Scalar(0, 255, 0));
-    overlay_lines(img, h_line_wrappers, cv::Scalar(0, 0, 255));
+    h_lines = remove_suspiciously_narrow_lines(h_lines, 512/2, false, 0.7, 2.5);
+    v_lines = remove_suspiciously_narrow_lines(v_lines, 512/2, true, 0.7, 2.5);
 
-    return img;
+    overlay_lines(img, v_lines, cv::Scalar(0, 255, 0));
+    overlay_lines(img, h_lines, cv::Scalar(0, 0, 255));
+
+    cv::Mat output_image;
+    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 2*512, cv::BORDER_CONSTANT);
+    cv::vconcat(output_image0, output_image1, output_image);
+    return output_image;
 }

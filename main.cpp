@@ -1,5 +1,5 @@
 #include <iostream>
-#include <opencv4/opencv2/core.hpp>
+#include <chrono>
 #include <opencv4/opencv2/core.hpp>
 
 #include "chessboard_detection.h"
@@ -7,7 +7,7 @@
 
 void process_camera_feed()
 {
-    auto cap = cv::VideoCapture(0);
+    auto cap = cv::VideoCapture(2);
     if(!cap.isOpened())
     {
         std::cout << "Unable to process camera feed!\n";
@@ -25,10 +25,18 @@ void process_camera_feed()
     while(cap.read(img))
     {
         try{
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
             cv::Rect roi((frame_width-frame_size)/2,(frame_height-frame_size)/2,frame_size,frame_size);
             img = img(roi);
             cv::resize(img, img, cv::Size(512, 512));
             img = process_img(img);
+
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            float fps = 1000000.0f / std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+            std::string fps_text = std::to_string(fps) + " fps";
+            cv::putText(img, fps_text, cv::Point(30, 30), cv::FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2);
         }
         catch (std::runtime_error error)
         {
