@@ -7,7 +7,7 @@
 
 void process_camera_feed()
 {
-    auto cap = cv::VideoCapture(1);
+    auto cap = cv::VideoCapture(0);
     if(!cap.isOpened())
     {
         std::cout << "Unable to process camera feed!\n";
@@ -24,7 +24,13 @@ void process_camera_feed()
 
     while(cap.read(img))
     {
-        img = process_img(img);
+        try{
+            img = process_img(img);
+        }
+        catch (std::runtime_error error)
+        {
+            std::cout << error.what();
+        }
 
         cv::imshow("camra feed", img);
         cv::waitKey(1);
@@ -36,8 +42,7 @@ void process_camera_feed()
 
 void process_sample_image()
 {
-
-    auto img = cv::imread("test.jpg");
+    auto img = cv::imread("test8.jpg");
 
     img = process_img(img);
 
@@ -52,8 +57,8 @@ void process_sample_image()
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-//    process_camera_feed();
-    process_sample_image();
+    process_camera_feed();
+//    process_sample_image();
 
     return 0;
 }
