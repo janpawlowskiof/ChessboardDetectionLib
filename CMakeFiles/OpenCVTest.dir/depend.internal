@@ -3,10 +3,12 @@
 
 CMakeFiles/OpenCVTest.dir/chessboard_detection.cpp.o
  /home/eg4l/CLionProjects/ChessboardDetectionLib/chessboard_detection.cpp
+ /home/eg4l/CLionProjects/ChessboardDetectionLib/chessboard_detection.h
  /usr/local/include/opencv4/opencv2/core.hpp
  /usr/local/include/opencv4/opencv2/core/base.hpp
  /usr/local/include/opencv4/opencv2/core/bufferpool.hpp
  /usr/local/include/opencv4/opencv2/core/check.hpp
+ /usr/local/include/opencv4/opencv2/core/core.hpp
  /usr/local/include/opencv4/opencv2/core/cv_cpu_dispatch.h
  /usr/local/include/opencv4/opencv2/core/cv_cpu_helper.h
  /usr/local/include/opencv4/opencv2/core/cvdef.h
@@ -32,8 +34,13 @@ CMakeFiles/OpenCVTest.dir/chessboard_detection.cpp.o
  /usr/local/include/opencv4/opencv2/core/utils/tls.hpp
  /usr/local/include/opencv4/opencv2/core/version.hpp
  /usr/local/include/opencv4/opencv2/core/vsx_utils.hpp
+ /usr/local/include/opencv4/opencv2/highgui.hpp
+ /usr/local/include/opencv4/opencv2/highgui/highgui.hpp
+ /usr/local/include/opencv4/opencv2/imgcodecs.hpp
  /usr/local/include/opencv4/opencv2/imgproc.hpp
+ /usr/local/include/opencv4/opencv2/imgproc/imgproc.hpp
  /usr/local/include/opencv4/opencv2/opencv_modules.hpp
+ /usr/local/include/opencv4/opencv2/videoio.hpp
 CMakeFiles/OpenCVTest.dir/main.cpp.o
  /home/eg4l/CLionProjects/ChessboardDetectionLib/chessboard_detection.h
  /home/eg4l/CLionProjects/ChessboardDetectionLib/main.cpp

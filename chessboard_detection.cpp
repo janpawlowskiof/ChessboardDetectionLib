@@ -384,7 +384,7 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
             }
             else
             {
-                throw std::runtime_error("Jan Pawłowski jest leniem");
+                throw std::runtime_error("Jan Pawłowski jest leniem\n");
             }
         }
 
