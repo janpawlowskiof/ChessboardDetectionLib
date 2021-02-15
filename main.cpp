@@ -25,6 +25,9 @@ void process_camera_feed()
     while(cap.read(img))
     {
         try{
+            cv::Rect roi((frame_width-frame_size)/2,(frame_height-frame_size)/2,frame_size,frame_size);
+            img = img(roi);
+            cv::resize(img, img, cv::Size(512, 512));
             img = process_img(img);
         }
         catch (std::runtime_error error)
@@ -32,7 +35,7 @@ void process_camera_feed()
             std::cout << error.what();
         }
 
-        cv::imshow("camra feed", img);
+        cv::imshow("camera feed", img);
         cv::waitKey(1);
     }
 

@@ -197,34 +197,15 @@ bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min,
 
 std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines, bool are_vertical)
 {
-//    if lines.shape == 0 or lines.shape[0] == 0:
-//        return lines
-
     if (lines.empty())
-    {
         return std::vector<LineWrapper>();
-    }
 
-//    line_wrappers = []
-//    for line in lines:
-//        line_wrappers.append(NpArrayWrapper(line))
-//
     std::vector<LineWrapper> line_wrappers;
     line_wrappers.reserve(lines.size());
     for (auto& line : lines)
     {
         line_wrappers.push_back({line});
     }
-
-//    min_pos = 0
-//    max_pos = 512
-//    for current_line in line_wrappers:
-//        if are_vertical:
-//            current_line.position_at_min = intersection(current_line.value, [[min_pos, np.pi/2]])[0]
-//            current_line.position_at_max = intersection(current_line.value, [[max_pos, np.pi/2]])[0]
-//        else:
-//            current_line.position_at_min = intersection(current_line.value, [[min_pos, 0.0]])[1]
-//            current_line.position_at_max = intersection(current_line.value, [[max_pos, 0.0]])[1]
 
     int min_pos = 0, max_pos = 512;
 
@@ -247,17 +228,6 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
             current_line_wrapper.position_at_max = intersection[1];
         }
     }
-
-
-//    for index, current_line in enumerate(line_wrappers):
-//        if all([
-//            not are_intersecting_in_range(current_line.value, other.value, (min_pos-128, min_pos-128), (max_pos+128, max_pos+128)) for other in line_wrappers if other is not current_line
-//        ]):
-//            certain_lines.append(current_line)
-//
-//    for line_wrapper in certain_lines:
-//        line_wrappers.remove(line_wrapper)
-//
 
     std::vector<LineWrapper> certain_lines_wrappers;
     certain_lines_wrappers.reserve(lines.size());
@@ -285,22 +255,6 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
             ++line_wrapper;
         }
     }
-
-//    std::cout << "There are " << certain_lines_wrappers.size() << " certaing lines\n";
-
-//    for(auto& certain_line_wrapper : certain_lines_wrappers)
-//    {
-//        auto index = line_wrappers.
-//        line_wrappers.erase()
-//    }
-
-
-//    auto predicate = [&](LineWrapper &line_wrapper) {
-//        return std::all_of(line_wrappers.begin(), line_wrappers.begin(), [&](LineWrapper other_line){return (&line_wrapper == &other_line) || !are_intersecting_in_range(line_wrapper.value, other_line.value, [min_pos-128, min_pos-128], [max_pos+128, max_pos+128]);});
-//    };
-//    line_wrappers.erase(std::remove_if(line_wrappers.begin(), line_wrappers.end(), predicate), line_wrappers.end());
-
-//    certain_lines = sorted(certain_lines, key=lambda x: x.position_at_min)
 
     std::sort(certain_lines_wrappers.begin(),
               certain_lines_wrappers.end(),
@@ -349,27 +303,6 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
         intersecting_lines.push_back(*current_line);
         line_wrappers.erase(current_line);
 
-//
-//    while line_wrappers:
-//        current_line = line_wrappers[0]
-//        prev_certain_line = None
-//        next_certain_line = None
-//
-//        for certain_line in certain_lines:
-//            if certain_line.position_at_min > current_line.position_at_min:
-//                next_certain_line = certain_line
-//                break
-//
-//        for certain_line in reversed(certain_lines):
-//            if certain_line.position_at_min < current_line.position_at_min:
-//                prev_certain_line = certain_line
-//                break
-//
-//        intersecting_lines = [
-//            other for other in line_wrappers[1:] if are_intersecting_in_range(current_line.value, other.value, (min_pos-128, min_pos-128), (max_pos+128, max_pos+128))
-//        ]
-//        intersecting_lines.append(current_line)
-//
         for (auto& line_wrapper : intersecting_lines)
         {
             if(next_certain_line && prev_certain_line)
@@ -388,37 +321,125 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines
             }
         }
 
-
         std::sort(intersecting_lines.begin(),
                   intersecting_lines.end(),
                   [](LineWrapper line_a, LineWrapper line_b){return abs(line_a.ratio_at_max - line_a.ratio_at_min) < abs(line_b.ratio_at_max - line_b.ratio_at_min);}
         );
-//        for line_wrapper in intersecting_lines:
-//            if next_certain_line and prev_certain_line:
-//                line_wrapper.ratio_at_max = (next_certain_line.position_at_max - line_wrapper.position_at_max) / (next_certain_line.position_at_max - prev_certain_line.position_at_max)
-//                line_wrapper.ratio_at_min = (next_certain_line.position_at_min - line_wrapper.position_at_min) / (next_certain_line.position_at_min - prev_certain_line.position_at_min)
-//            elif neighbour_line := next_certain_line or prev_certain_line:
-//                line_wrapper.ratio_at_min = neighbour_line.position_at_min - line_wrapper.position_at_min
-//                line_wrapper.ratio_at_max = neighbour_line.position_at_max - line_wrapper.position_at_max
-//            else:
-//                pass
-//                # raise Exception("Programiście jeszcze nie chciało się pomyśleć co wtedy")
-//
-//        intersecting_lines = sorted(intersecting_lines, key=lambda x: abs(x.ratio_at_max - x.ratio_at_min))
-//
 
         auto best_line = intersecting_lines[0];
         certain_lines_wrappers.push_back(best_line);
     }
 
     return certain_lines_wrappers;
-//        best_line = intersecting_lines[0]
-//        certain_lines.append(best_line)
-//        for line_wrapper in intersecting_lines:
-//            line_wrappers.remove(line_wrapper)
+}
+
+float max_non_inf(float a, float b)
+{
+    if(a == INFINITY)
+        return b;
+    if(b == INFINITY)
+        return a;
+    return std::max(a, b);
+}
+
+std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width, float accepted_max_width)
+{
+    if (line_wrappers.size() < 2)
+        return line_wrappers;
+//    if len(line_wrappers) < 2:
+//    return lines
+
+    for (auto &line_wrapper : line_wrappers)
+    {
+        line_wrapper.position_at_center = (line_wrapper.position_at_min + line_wrapper.position_at_max) / 2;
+    }
+
+    std::sort(line_wrappers.begin(),
+              line_wrappers.end(),
+              [](const LineWrapper& line_a, const LineWrapper& line_b){return line_a.position_at_center < line_b.position_at_center;}
+    );
+//    for line_wrapper in line_wrappers:
+//    if are_vertical:
+//        line_wrapper.position = intersection(line_wrapper.value, [[center_position, np.pi/2]])[0]
+//    else:
+//    line_wrapper.position = intersection(line_wrapper.value, [[center_position, 0.0]])[1]
 //
-//    result = [line_wrapper.value for line_wrapper in certain_lines]
-//    return result
+//    line_wrappers = sorted(line_wrappers, key=lambda x: x.position)
+
+    for(int i = 1; i < line_wrappers.size(); i++)
+    {
+        line_wrappers[i-1].offset_to_next = line_wrappers[i].offset_from_prev = line_wrappers[i].position_at_center - line_wrappers[i - 1].position_at_center;
+    }
+
+//    for index in range(1, len(line_wrappers)):
+//    line_wrappers[index].offset_from_prev = line_wrappers[index].position - line_wrappers[index - 1].position
+//
+//# marcin nie bij, ja wiem, że liczę dwa razy to samo
+//    for index in range(0, len(line_wrappers) - 1):
+//    line_wrappers[index].offset_to_next = line_wrappers[index + 1].position - line_wrappers[index].position
+//
+
+    std::vector<float> gaps;
+    gaps.reserve(line_wrappers.size()-1);
+
+    for(int i = 1; i < line_wrappers.size(); i++)
+        gaps.push_back(line_wrappers[i].offset_from_prev);
+
+    std::sort(gaps.begin(),
+              gaps.end(),
+              [](const float a, const float b){return a > b;}
+    );
+
+    float median_gap = gaps[gaps.size()/2];
+
+//    median_gap = np.median([line_wrapper.offset_from_prev for line_wrapper in line_wrappers[1:]])
+
+    std::vector<LineWrapper> result_line_wrappers;
+    result_line_wrappers.reserve(line_wrappers.size());
+
+    for(auto& line_wrapper : line_wrappers)
+    {
+        if((line_wrapper.offset_from_prev != INFINITY and accepted_min_width < line_wrapper.offset_from_prev/median_gap and line_wrapper.offset_from_prev/median_gap < accepted_max_width)
+        or (line_wrapper.offset_to_next != INFINITY and accepted_min_width < line_wrapper.offset_to_next/median_gap and line_wrapper.offset_to_next/median_gap < accepted_max_width))
+        {
+            result_line_wrappers.push_back(line_wrapper);
+        }
+    }
+
+    if (result_line_wrappers.size() > 9)
+    {
+        std::sort(result_line_wrappers.begin(),
+                  result_line_wrappers.end(),
+                  [](const LineWrapper& line_a, const LineWrapper& line_b){
+                         return max_non_inf(line_a.offset_from_prev, line_a.offset_to_next) < max_non_inf(line_b.offset_from_prev, line_b.offset_to_next);
+                    }
+        );
+
+        trim_vector(result_line_wrappers, 9);
+
+        std::sort(result_line_wrappers.begin(),
+                  result_line_wrappers.end(),
+                  [](const LineWrapper& line_a, const LineWrapper& line_b){
+                      return line_a.position_at_center > line_b.position_at_center;
+                  }
+        );
+    }
+
+    return result_line_wrappers;
+//
+//    result_lines = []
+//
+//    for line_wrapper in line_wrappers:
+//    if (line_wrapper.offset_from_prev and accespted_min_width < line_wrapper.offset_from_prev/median_gap < accespted_max_width)\
+//                or (line_wrapper.offset_to_next and accespted_min_width < line_wrapper.offset_to_next/median_gap < accespted_max_width):
+//    result_lines.append(line_wrapper)
+//
+//# if there are more than 9 lines, some must be unnecessary
+//    if len(result_lines) > 9:
+//        result_lines = sorted(result_lines, key=lambda x: x.offset_from_prev or x.offset_to_next, reverse=True)[:9]
+//        result_lines = sorted(result_lines, key=lambda x: x.position)
+//
+//    return np.array([line_wrapper.value for line_wrapper in result_lines])
 }
 
 cv::Mat process_img(cv::Mat img)
@@ -440,6 +461,9 @@ cv::Mat process_img(cv::Mat img)
 
     auto h_line_wrappers = remove_intersecting_lines(h_lines, false);
     auto v_line_wrappers = remove_intersecting_lines(v_lines, true);
+
+    h_line_wrappers = remove_suspiciously_narrow_lines(h_line_wrappers, 512/2, false, 0.7, 2.5);
+    v_line_wrappers = remove_suspiciously_narrow_lines(v_line_wrappers, 512/2, true, 0.7, 2.5);
 
     overlay_lines(img, v_line_wrappers, cv::Scalar(0, 255, 0));
     overlay_lines(img, h_line_wrappers, cv::Scalar(0, 0, 255));

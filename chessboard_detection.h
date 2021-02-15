@@ -16,9 +16,12 @@ struct LineWrapper
 {
     cv::Vec2f value;
     float position_at_min = 0;
+    float position_at_center = 0;
     float position_at_max = 0;
     float ratio_at_min = 0;
     float ratio_at_max = 0;
+    float offset_from_prev = INFINITY;
+    float offset_to_next = INFINITY;
 };
 
 int median(cv::Mat& input);
@@ -36,5 +39,6 @@ template<typename T> void trim_vector(std::vector<T>& v, int size);
 std::vector<cv::Vec2f> remove_duplicate_lines(std::vector<cv::Vec2f>& lines);
 bool are_duplicates(cv::Vec2f &line_a, cv::Vec2f &line_b, float rho_threshold, float theta_threshold);
 std::vector<LineWrapper> remove_intersecting_lines(std::vector<cv::Vec2f>& lines, bool are_vertical);
-cv::Vec2f intersect(cv::Vec2f &line_a, cv::Vec2f &line_b);
-bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min[2], float xy_max[2]);
+bool intersect(cv::Vec2f line_a, cv::Vec2f line_b, cv::Vec2f &out);
+bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min, float xy_max);
+std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width = 0.8, float accepted_max_width = 1.5);
