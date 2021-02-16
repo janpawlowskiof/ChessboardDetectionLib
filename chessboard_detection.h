@@ -47,3 +47,7 @@ bool intersect(cv::Vec2f line_a, cv::Vec2f line_b, cv::Vec2f &out);
 bool are_intersecting_in_range(cv::Vec2f line_a, cv::Vec2f line_b, float xy_min, float xy_max);
 std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width = 0.8, float accepted_max_width = 1.5);
 std::vector<std::vector<cv::Vec2f>> segment_intersections(std::vector<LineWrapper> h_lines, std::vector<LineWrapper> v_lines);
+cv::Vec2f create_vertical_line(float x1, float x2, float y2);
+cv::Vec2f create_horizontal_line(float y1, float x2, float y2);
+std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, float min_center_gap, bool are_vertical);
+std::vector<LineWrapper> recalculate_wrappers_properties(std::vector<LineWrapper> &line_wrappers, bool are_vertical);

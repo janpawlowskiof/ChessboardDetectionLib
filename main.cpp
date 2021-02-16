@@ -4,6 +4,7 @@
 
 #include "chessboard_detection.h"
 
+float DEBUG_MEDIAN = 0.0f;
 
 void process_camera_feed()
 {

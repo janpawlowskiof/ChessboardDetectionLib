@@ -6,7 +6,6 @@
 // Created by eg4l on 10.02.2021.
 //
 
-float DEBUG_MEDIAN = 0.0f;
 
 template<typename T>
 void trim_vector(std::vector<T>& v, int size)
@@ -222,25 +221,7 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<LineWrapper> &lin
 
     int min_pos = 0, max_pos = 512;
 
-    for(auto& current_line_wrapper : line_wrappers)
-    {
-        if (are_vertical)
-        {
-            cv::Vec2f intersection;
-            intersect(current_line_wrapper.value, cv::Vec2f(min_pos, M_PI_2), intersection);
-            current_line_wrapper.position_at_min = intersection[0];
-            intersect(current_line_wrapper.value, cv::Vec2f(max_pos, M_PI_2), intersection);
-            current_line_wrapper.position_at_max = intersection[0];
-        }
-        else
-        {
-            cv::Vec2f intersection;
-            intersect(current_line_wrapper.value, cv::Vec2f(min_pos, 0.0f), intersection);
-            current_line_wrapper.position_at_min = intersection[1];
-            intersect(current_line_wrapper.value, cv::Vec2f(max_pos, 0.0f), intersection);
-            current_line_wrapper.position_at_max = intersection[1];
-        }
-    }
+    line_wrappers = recalculate_wrappers_properties(line_wrappers, are_vertical);
 
     std::vector<LineWrapper> certain_lines_wrappers;
     certain_lines_wrappers.reserve(lines.size());
@@ -340,7 +321,20 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<LineWrapper> &lin
         );
 
         auto best_line = intersecting_lines[0];
-        certain_lines_wrappers.push_back(best_line);
+
+        bool is_certain = true;
+        for(auto& other_line_wrapper : line_wrappers)
+        {
+            if(are_intersecting_in_range(best_line.value, other_line_wrapper.value, min_pos - 128, max_pos+128))
+            {
+                is_certain = false;
+                break;
+            }
+        }
+        if(is_certain)
+            certain_lines_wrappers.push_back(best_line);
+        else
+            line_wrappers.push_back(best_line);
     }
 
     return certain_lines_wrappers;
@@ -364,17 +358,32 @@ float max_non_inf(float a, float b)
     return std::max(a, b);
 }
 
-std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width, float accepted_max_width)
+std::vector<LineWrapper> recalculate_wrappers_properties(std::vector<LineWrapper>& line_wrappers, bool are_vertical)
 {
-    if (line_wrappers.size() < 2)
-        return line_wrappers;
+    for(auto& line_wrapper : line_wrappers)
+    {
+        if (are_vertical)
+        {
+            cv::Vec2f intersection;
+            intersect(line_wrapper.value, cv::Vec2f(0, M_PI_2), intersection);
+            line_wrapper.position_at_min = intersection[0];
+            intersect(line_wrapper.value, cv::Vec2f(512, M_PI_2), intersection);
+            line_wrapper.position_at_max = intersection[0];
+        }
+        else
+        {
+            cv::Vec2f intersection;
+            intersect(line_wrapper.value, cv::Vec2f(0, 0.0f), intersection);
+            line_wrapper.position_at_min = intersection[1];
+            intersect(line_wrapper.value, cv::Vec2f(512, 0.0f), intersection);
+            line_wrapper.position_at_max = intersection[1];
+        }
+    }
 
     for (auto &line_wrapper : line_wrappers)
     {
         line_wrapper.position_at_center = (line_wrapper.position_at_min + line_wrapper.position_at_max) / 2;
     }
-
-    line_wrappers.erase(std::remove_if(line_wrappers.begin(), line_wrappers.end(), [](LineWrapper& line){return max_non_inf(line.offset_from_prev, line.offset_to_next) < 20;}));
 
     std::sort(line_wrappers.begin(),
               line_wrappers.end(),
@@ -385,6 +394,20 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
     {
         line_wrappers[i-1].offset_to_next = line_wrappers[i].offset_from_prev = line_wrappers[i].position_at_center - line_wrappers[i - 1].position_at_center;
     }
+
+    return line_wrappers;
+}
+
+std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrapper> line_wrappers, int center_position, bool are_vertical, float accepted_min_width, float accepted_max_width)
+{
+    if (line_wrappers.size() < 2)
+        return line_wrappers;
+
+    line_wrappers = recalculate_wrappers_properties(line_wrappers, are_vertical);
+
+    line_wrappers.erase(std::remove_if(line_wrappers.begin(), line_wrappers.end(), [](LineWrapper& line){return max_non_inf(line.offset_from_prev, line.offset_to_next) < 20;}));
+
+    line_wrappers = recalculate_wrappers_properties(line_wrappers, are_vertical);
 
     std::vector<float> gaps;
     gaps.reserve(line_wrappers.size()-1);
@@ -399,7 +422,7 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
 
     float median_gap = gaps[gaps.size()/2];
     DEBUG_MEDIAN = median_gap;
-    std::cout << "Median gap is " << median_gap << "\n";
+//    std::cout << "Median gap is " << median_gap << "\n";
 
     std::vector<LineWrapper> result_line_wrappers;
     result_line_wrappers.reserve(line_wrappers.size());
@@ -457,6 +480,109 @@ std::vector<std::vector<cv::Vec2f>> segment_intersections(std::vector<LineWrappe
     return result;
 }
 
+cv::Vec2f normalize_line(cv::Vec2f line)
+{
+    while (line[1] > M_PI)
+    {
+        line[0] *= -1;
+        line[1] -= M_PI;
+    }
+
+    while (line[1] < 0)
+    {
+        line[0] *= -1;
+        line[1] += M_PI;
+    }
+
+    return line;
+}
+
+cv::Vec2f create_vertical_line(float x1, float x2, float y2)
+{
+    float d = sqrt(y2*y2 + (x2 - x1)*(x2 - x1));
+    float rho = y2 * x1 / d;
+    float theta = acos(y2 / d);
+
+    return normalize_line(cv::Vec2f(rho, theta));
+}
+
+cv::Vec2f create_horizontal_line(float y1, float x2, float y2)
+{
+    auto [rho, theta] = create_vertical_line(y1, y2, x2).val;
+    return normalize_line(cv::Vec2f(M_PI_2 - rho, theta));
+}
+
+std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, float min_center_gap, bool are_vertical)
+{
+    if (lines.size() > 9)
+    {
+        throw std::runtime_error("More than 9 lines at this stage of processing is an error!");
+    }
+    if (lines.size() == 9)
+    {
+        return lines;
+    }
+    if (lines.size() < 3)
+    {
+        throw std::runtime_error("nothing i can do here");
+    }
+
+    while (lines.size() < 9)
+    {
+        lines = recalculate_wrappers_properties(lines, are_vertical);
+        float median_gap = DEBUG_MEDIAN;
+        auto max_offset_from_prev_line = std::max_element(lines.begin()+1,
+                                                          lines.end(),
+                                                          [](LineWrapper line_a, LineWrapper line_b){return line_a.offset_from_prev < line_b.offset_from_prev;}
+                                                        );
+        float max_gap = max_offset_from_prev_line->offset_from_prev;
+
+        if (max_gap/median_gap > min_center_gap)
+        {
+            float max_point = ((max_offset_from_prev_line-1)->position_at_max + max_offset_from_prev_line->position_at_max) / 2;
+            float min_point = ((max_offset_from_prev_line-1)->position_at_min + max_offset_from_prev_line->position_at_min) / 2;
+
+            cv::Vec2f line;
+            if(are_vertical)
+                line = create_vertical_line(min_point, max_point, -512);
+            else
+                line = create_horizontal_line(min_point, max_point, -512);
+
+            lines.push_back({line});
+            lines = recalculate_wrappers_properties(lines, are_vertical);
+        }
+        else
+        {
+            lines = recalculate_wrappers_properties(lines, are_vertical);
+
+            float min_center_position = lines.front().position_at_center;
+            float max_center_position = lines.front().position_at_center;
+
+            float min_point, max_point;
+            if (min_center_position > 512 - max_center_position)
+            {
+                min_point = lines.front().position_at_min - median_gap;
+                max_point = lines.front().position_at_max - median_gap;
+            }
+            else
+            {
+                min_point = lines.back().position_at_min - median_gap;
+                max_point = lines.back().position_at_max - median_gap;
+            }
+
+            cv::Vec2f line;
+            if(are_vertical)
+                line = create_vertical_line(min_point, max_point, -512);
+            else
+                line = create_horizontal_line(min_point, max_point, -512);
+
+            lines.push_back({line});
+            lines = recalculate_wrappers_properties(lines, are_vertical);
+        }
+    }
+    return lines;
+}
+
 cv::Mat process_img(cv::Mat img)
 {
     cv::Mat temp;
@@ -499,8 +625,16 @@ cv::Mat process_img(cv::Mat img)
     overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     cv::hconcat(output_image1, temp, output_image1);
 
+    h_lines = insert_missing_lines(h_lines, 1.7f, false);
+//    std::cout << "Before: " << v_lines.size();
+    v_lines = insert_missing_lines(v_lines, 1.7f, true);
+//    std::cout << " After: " << v_lines.size() << "\n";
+
     auto intersections = segment_intersections(h_lines, v_lines);
 
+    temp = img.clone();
+    overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
+    overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     overlay_markers(temp, intersections, cv::Scalar(255, 0, 0));
     cv::hconcat(output_image1, temp, output_image1);
 
