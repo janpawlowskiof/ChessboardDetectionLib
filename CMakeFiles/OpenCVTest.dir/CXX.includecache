@@ -11,6 +11,8 @@ opencv2/imgproc.hpp
 -
 iostream
 -
+utility
+-
 chessboard_detection.h
 /home/eg4l/CLionProjects/ChessboardDetectionLib/chessboard_detection.h
 
@@ -25,6 +27,16 @@ opencv2/core/core.hpp
 -
 opencv2/core/types.hpp
 -
+
+/home/eg4l/CLionProjects/ChessboardDetectionLib/main.cpp
+iostream
+-
+chrono
+-
+opencv4/opencv2/core.hpp
+-
+chessboard_detection.h
+/home/eg4l/CLionProjects/ChessboardDetectionLib/chessboard_detection.h
 
 /usr/local/include/opencv4/opencv2/core.hpp
 opencv2/core/cvdef.h

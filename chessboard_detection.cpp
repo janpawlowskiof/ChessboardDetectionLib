@@ -7,6 +7,7 @@
 // Created by eg4l on 10.02.2021.
 //
 
+float DEBUG_MEDIAN = 0.0f;
 
 template<typename T>
 void trim_vector(std::vector<T>& v, int size)
@@ -78,7 +79,7 @@ std::vector<cv::Vec2f> find_lines(const cv::Mat& edges)
 {
     std::vector<cv::Vec2f> lines;
     cv::HoughLines(edges, lines, 1, M_PI/180.0f, 30);
-    trim_vector(lines, 200);
+    trim_vector(lines, 150);
     return lines;
 }
 
@@ -106,12 +107,12 @@ void split_lines_into_hv(std::vector<LineWrapper> &lines, std::vector<LineWrappe
 
     for(auto& line : lines)
     {
-        if(is_horizontal(line.value, 15.0f*M_PI/180.0f))
+        if(is_horizontal(line.value, 12.0f*M_PI/180.0f))
         {
             if(h_lines.size() < 50)
                 h_lines.push_back(line);
         }
-        else if(is_vertical(line.value, 15.0f*M_PI/180.0f))
+        else if(is_vertical(line.value, 12.0f*M_PI/180.0f))
         {
             if(v_lines.size() < 50)
                 v_lines.push_back(line);
@@ -555,7 +556,6 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
         }
         else
         {
-            std::cout << "Inserting line at the edge\n";
             lines = recalculate_wrappers_properties(lines, are_vertical);
 
             float min_center_position = lines.front().position_at_center;
@@ -586,26 +586,35 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
     return lines;
 }
 
+#define RETURN_MOZAIC 0
+
 cv::Mat process_img(cv::Mat img)
 {
     cv::Mat temp;
 
     cv::resize(img, img, cv::Size(512, 512));
+
+#if RETURN_MOZAIC == 1
     auto output_image0 = img.clone();
     auto output_image1 = img.clone();
+#endif
 
     auto simplified_image = simplify_image(img, 3, cv::Size(2, 6));
     auto edges = auto_canny(simplified_image, 0.33f);
 
+#if RETURN_MOZAIC == 1
     cv::cvtColor(edges, temp, cv::COLOR_GRAY2BGR);
     cv::hconcat(output_image0, temp, output_image0);
+#endif
 
     auto lines = find_lines(edges);
     auto line_wrappers = wrap_lines(lines);
 
+#if RETURN_MOZAIC == 1
     temp = img.clone();
     overlay_lines(temp, line_wrappers, cv::Scalar(255, 255, 255));
     cv::hconcat(output_image0, temp, output_image0);
+#endif
 
     std::vector<LineWrapper> h_lines;
     std::vector<LineWrapper> v_lines;
@@ -614,8 +623,10 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_duplicate_lines(h_lines);
     v_lines = remove_duplicate_lines(v_lines);
 
+#if RETURN_MOZAIC == 1
     overlay_lines(output_image1, v_lines, cv::Scalar(0, 255, 0));
     overlay_lines(output_image1, h_lines, cv::Scalar(0, 0, 255));
+#endif
 
     h_lines = remove_intersecting_lines(h_lines, false);
     v_lines = remove_intersecting_lines(v_lines, true);
@@ -623,10 +634,12 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_suspiciously_narrow_lines(h_lines, false, 0.75, 2.5);
     v_lines = remove_suspiciously_narrow_lines(v_lines, true, 0.75, 2.5);
 
+#if RETURN_MOZAIC == 1
     temp = img.clone();
     overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
     overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     cv::hconcat(output_image1, temp, output_image1);
+#endif
 
     h_lines = insert_missing_lines(h_lines, 1.7f, false);
 //    std::cout << "Before: " << v_lines.size();
@@ -639,10 +652,15 @@ cv::Mat process_img(cv::Mat img)
     overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
     overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     overlay_markers(temp, intersections, cv::Scalar(255, 0, 0));
-    cv::hconcat(output_image1, temp, output_image1);
 
+#if RETURN_MOZAIC == 1
+    cv::hconcat(output_image1, temp, output_image1);
     cv::Mat output_image;
 //    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 512, cv::BORDER_CONSTANT);
     cv::vconcat(output_image0, output_image1, output_image);
     return output_image;
+#else
+    return temp;
+#endif
+
 }
