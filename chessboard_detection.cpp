@@ -1,3 +1,5 @@
+#define RETURN_MOZAIC 0
+
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <utility>
@@ -412,6 +414,9 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
 
     line_wrappers = recalculate_wrappers_properties(line_wrappers, are_vertical);
 
+    if (line_wrappers.size() < 2)
+        return line_wrappers;
+
     std::vector<float> gaps;
     gaps.reserve(line_wrappers.size()-1);
 
@@ -512,7 +517,7 @@ cv::Vec2f create_vertical_line(float x1, float x2, float y2)
 cv::Vec2f create_horizontal_line(float y1, float x2, float y2)
 {
     auto [rho, theta] = create_vertical_line(y1, y2, x2).val;
-    return normalize_line(cv::Vec2f(M_PI_2 - rho, theta));
+    return normalize_line(cv::Vec2f(rho, M_PI_2 - theta));
 }
 
 std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, float min_center_gap, bool are_vertical)
@@ -544,18 +549,20 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
         {
             float max_point = ((max_offset_from_prev_line-1)->position_at_max + max_offset_from_prev_line->position_at_max) / 2;
             float min_point = ((max_offset_from_prev_line-1)->position_at_min + max_offset_from_prev_line->position_at_min) / 2;
+            std::cout << "Inserting line in between others at " << min_point << " x " << max_point << "\n";
 
             cv::Vec2f line;
             if(are_vertical)
                 line = create_vertical_line(min_point, max_point, -512);
             else
-                line = create_horizontal_line(min_point, max_point, -512);
+                line = create_horizontal_line(min_point, 512, max_point);
 
             lines.push_back({line});
             lines = recalculate_wrappers_properties(lines, are_vertical);
         }
         else
         {
+            std::cout << "Inserting line at the edge\n";
             lines = recalculate_wrappers_properties(lines, are_vertical);
 
             float min_center_position = lines.front().position_at_center;
@@ -577,7 +584,7 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
             if(are_vertical)
                 line = create_vertical_line(min_point, max_point, -512);
             else
-                line = create_horizontal_line(min_point, max_point, -512);
+                line = create_horizontal_line(min_point, 512, max_point);
 
             lines.push_back({line});
             lines = recalculate_wrappers_properties(lines, are_vertical);
@@ -585,8 +592,6 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
     }
     return lines;
 }
-
-#define RETURN_MOZAIC 0
 
 cv::Mat process_img(cv::Mat img)
 {
@@ -644,6 +649,7 @@ cv::Mat process_img(cv::Mat img)
     h_lines = insert_missing_lines(h_lines, 1.7f, false);
 //    std::cout << "Before: " << v_lines.size();
     v_lines = insert_missing_lines(v_lines, 1.7f, true);
+    std::cout << "HLines: " << h_lines.size() << "\tVLines: " << v_lines.size() << "\n";
 //    std::cout << " After: " << v_lines.size() << "\n";
 
     auto intersections = segment_intersections(h_lines, v_lines);

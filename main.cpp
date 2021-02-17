@@ -54,9 +54,9 @@ void process_camera_feed()
     cv::destroyAllWindows();
 }
 
-void process_sample_image()
+void process_sample_image(std::string filename)
 {
-    auto img = cv::imread("test8.jpg");
+    auto img = cv::imread(filename);
 
     img = process_img(img);
 
@@ -71,8 +71,8 @@ void process_sample_image()
 int main() {
     std::cout << "Hello, World!" << std::endl;
 
-    process_camera_feed();
-//    process_sample_image();
+//    process_camera_feed();
+    process_sample_image("test7.jpg");
 
     return 0;
 }
