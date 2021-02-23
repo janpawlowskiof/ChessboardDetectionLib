@@ -1,3 +1,0 @@
-/home/eg4l/CLionProjects/OpenCVTest/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/eg4l/CLionProjects/OpenCVTest/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/eg4l/CLionProjects/OpenCVTest/cmake-build-debug/CMakeFiles/OpenCVTest.dir

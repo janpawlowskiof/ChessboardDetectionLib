@@ -1,3 +1,0 @@
-/home/eg4l/CLionProjects/ChessboardDetectionLib/CMakeFiles/rebuild_cache.dir
-/home/eg4l/CLionProjects/ChessboardDetectionLib/CMakeFiles/edit_cache.dir
-/home/eg4l/CLionProjects/ChessboardDetectionLib/CMakeFiles/ChessboardDetectionLib.dir
