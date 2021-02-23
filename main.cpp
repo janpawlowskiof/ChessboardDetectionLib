@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <filesystem>
 #include <opencv4/opencv2/core.hpp>
 
 #include "chessboard_detection.h"
@@ -30,7 +31,10 @@ void process_camera_feed()
             cv::Rect roi((frame_width-frame_size)/2,(frame_height-frame_size)/2,frame_size,frame_size);
             img = img(roi);
             cv::resize(img, img, cv::Size(512, 512));
-            img = process_img(img);
+
+            cv::Mat simplified_image, intersections_mat, mozaic;
+            IntersectionsVec intersections;
+            process_img(img, intersections, intersections_mat, simplified_image, mozaic);
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             float fps = 1000000.0f / std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -54,25 +58,103 @@ void process_camera_feed()
     cv::destroyAllWindows();
 }
 
-void process_sample_image(std::string filename)
+
+void display_sample_image(std::string input_path)
 {
-    auto img = cv::imread(filename);
+    auto img = cv::imread(input_path);
 
-    img = process_img(img);
+    int frame_width = img.cols;
+    int frame_height = img.rows;
+    int frame_size = std::min(frame_width, frame_height);
 
-    cv::imwrite("output.jpg", img);
-    cv::imshow("camra feed", img);
-    cv::waitKey(0);
+    cv::Rect roi((frame_width-frame_size)/2,(frame_height-frame_size)/2,frame_size,frame_size);
+    img = img(roi);
+    cv::resize(img, img, cv::Size(512, 512));
 
-    cv::destroyAllWindows();
+    cv::Mat simplified_image, intersections_mat, mozaic;
+    IntersectionsVec intersections;
+
+    process_img(img, intersections, intersections_mat, simplified_image, mozaic);
+
+    cv::imshow("_mozaic.jpg", mozaic);
+    cv::waitKey();
 }
 
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
+void split_image(std::string input_path, std::string output_root)
+{
+    std::string base_filename = input_path.substr(input_path.find_last_of("/\\") + 1);
+    std::string::size_type const p(base_filename.find_last_of('.'));
+    std::string file_without_extension = base_filename.substr(0, p);
+    std::string output_path = output_root + "/" + file_without_extension + "/";
+    output_path.erase(std::remove(output_path.begin(), output_path.end(), '.'), output_path.end());
 
-//    process_camera_feed();
-    process_sample_image("test7.jpg");
+    auto path = std::filesystem::path(output_path);
+    std::filesystem::create_directories(path);
+
+    auto img = cv::imread(input_path);
+
+    int frame_width = img.cols;
+    int frame_height = img.rows;
+    int frame_size = std::min(frame_width, frame_height);
+
+    cv::Rect roi((frame_width-frame_size)/2,(frame_height-frame_size)/2,frame_size,frame_size);
+    img = img(roi);
+    cv::resize(img, img, cv::Size(512, 512));
+    cv::imwrite(output_path + "_original.jpg", img);
+
+    cv::Mat simplified_image, intersections_mat, mozaic;
+    IntersectionsVec intersections;
+
+    process_img(img, intersections, intersections_mat, simplified_image, mozaic);
+    split_image_into_folder(img, intersections, output_path);
+
+    cv::imwrite(output_path + "_mozaic.jpg", mozaic);
+    cv::imwrite(output_path + "_intersections.jpg", intersections_mat);
+}
+
+void test_creating_line(float v1, float v2, bool are_vertical)
+{
+    std::vector<cv::Vec2f> lines;
+    if(are_vertical)
+        lines.push_back(create_vertical_line(v1, v2, -512));
+    else
+        lines.push_back(create_horizontal_line(v1, 512, v2));
+
+    auto line_wrappers = wrap_lines(lines);
+    line_wrappers = recalculate_wrappers_properties(line_wrappers, are_vertical);
+    assert(round(line_wrappers[0].position_at_min) == v1);
+    assert(round(line_wrappers[0].position_at_max) == v2);
+}
+
+void test_creating_lines()
+{
+    test_creating_line(100, 200, true);
+    test_creating_line(200, 200, true);
+    test_creating_line(300, 200, true);
+
+    test_creating_line(100, 200, false);
+    test_creating_line(200, 200, false);
+    test_creating_line(300, 200, false);
+}
+
+int main(int argc, const char *argv[]) {
+
+//    if (argc < 3)
+//    {
+//        std::cout << "Specify paths!\n";
+//        return -1;
+//    }
+//    std::string input_path = argv[1];
+//    std::string output_path = argv[2];
+
+//    test_creating_lines();
+    display_sample_image("_original.jpg");
+
+//    for(auto& p: std::filesystem::directory_iterator("/home/eg4l/Downloads/test3"))
+//    {
+//        split_image(p.path(), "/home/eg4l/Downloads/test4");
+//    }
 
     return 0;
 }

@@ -1,5 +1,3 @@
-#define RETURN_MOZAIC 0
-
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <utility>
@@ -59,7 +57,7 @@ cv::Mat auto_canny(cv::Mat img, float sigma)
     cv::Canny(img, edges, lower, upper);
 
     cv::dilate(edges, edges, cv::Mat(), cv::Point(-1, -1), 2);
-    cv::erode(edges, edges, cv::Mat(), cv::Point(-1, -1), 1);
+//    cv::erode(edges, edges, cv::Mat(), cv::Point(-1, -1), 1);
 
     return edges;
 }
@@ -140,7 +138,7 @@ void overlay_lines(cv::Mat& img, std::vector<LineWrapper>& lines, const cv::Scal
     }
 }
 
-void overlay_markers(cv::Mat& img, std::vector<std::vector<cv::Vec2f>>& points, const cv::Scalar& color)
+void overlay_markers(cv::Mat& img, IntersectionsVec& points, const cv::Scalar& color)
 {
     for (auto& v : points)
         for(auto& point : v)
@@ -316,7 +314,7 @@ std::vector<LineWrapper> remove_intersecting_lines(std::vector<LineWrapper> &lin
             }
             else
             {
-                throw std::runtime_error("Jan Pawłowski jest leniem\n");
+                line_wrapper.ratio_at_min = line_wrapper.ratio_at_max = 0;
             }
         }
 
@@ -466,9 +464,9 @@ std::vector<LineWrapper> remove_suspiciously_narrow_lines(std::vector<LineWrappe
     return result_line_wrappers;
 }
 
-std::vector<std::vector<cv::Vec2f>> segment_intersections(const std::vector<LineWrapper>& h_lines, const std::vector<LineWrapper>& v_lines)
+IntersectionsVec segment_intersections(const std::vector<LineWrapper>& h_lines, const std::vector<LineWrapper>& v_lines)
 {
-    std::vector<std::vector<cv::Vec2f>> result;
+    IntersectionsVec result;
     result.reserve(h_lines.size());
 
     for(auto& h_line : h_lines)
@@ -507,17 +505,16 @@ cv::Vec2f normalize_line(cv::Vec2f line)
 
 cv::Vec2f create_vertical_line(float x1, float x2, float y2)
 {
-    float d = sqrt(y2*y2 + (x2 - x1)*(x2 - x1));
-    float rho = y2 * x1 / d;
-    float theta = acos(y2 / d);
-
-    return normalize_line(cv::Vec2f(rho, theta));
+    auto [rho, theta] = create_horizontal_line(x1, y2, x2).val;
+    return cv::Vec2f(rho, normalize_angle(theta - M_PI_2));
 }
 
 cv::Vec2f create_horizontal_line(float y1, float x2, float y2)
 {
-    auto [rho, theta] = create_vertical_line(y1, y2, x2).val;
-    return normalize_line(cv::Vec2f(rho, M_PI_2 - theta));
+    float theta = atan((y2-y1)/x2);
+    float rho = y1 * cos(theta);
+
+    return normalize_line(cv::Vec2f(rho, normalize_angle(theta + M_PI_2)));
 }
 
 std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, float min_center_gap, bool are_vertical)
@@ -593,33 +590,27 @@ std::vector<LineWrapper> insert_missing_lines(std::vector<LineWrapper> &lines, f
     return lines;
 }
 
-cv::Mat process_img(cv::Mat img)
+void process_img(cv::Mat img, IntersectionsVec &intersections, cv::Mat &intersection_mat,
+                 cv::Mat &simplified_image, cv::Mat &mozaic)
 {
     cv::Mat temp;
 
     cv::resize(img, img, cv::Size(512, 512));
 
-#if RETURN_MOZAIC == 1
     auto output_image0 = img.clone();
     auto output_image1 = img.clone();
-#endif
 
-    auto simplified_image = simplify_image(img, 3, cv::Size(2, 6));
+    simplified_image = simplify_image(img, 3, cv::Size(2, 6));
     auto edges = auto_canny(simplified_image, 0.33f);
 
-#if RETURN_MOZAIC == 1
     cv::cvtColor(edges, temp, cv::COLOR_GRAY2BGR);
     cv::hconcat(output_image0, temp, output_image0);
-#endif
 
     auto lines = find_lines(edges);
     auto line_wrappers = wrap_lines(lines);
-
-#if RETURN_MOZAIC == 1
     temp = img.clone();
     overlay_lines(temp, line_wrappers, cv::Scalar(255, 255, 255));
     cv::hconcat(output_image0, temp, output_image0);
-#endif
 
     std::vector<LineWrapper> h_lines;
     std::vector<LineWrapper> v_lines;
@@ -628,10 +619,8 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_duplicate_lines(h_lines);
     v_lines = remove_duplicate_lines(v_lines);
 
-#if RETURN_MOZAIC == 1
     overlay_lines(output_image1, v_lines, cv::Scalar(0, 255, 0));
     overlay_lines(output_image1, h_lines, cv::Scalar(0, 0, 255));
-#endif
 
     h_lines = remove_intersecting_lines(h_lines, false);
     v_lines = remove_intersecting_lines(v_lines, true);
@@ -639,34 +628,74 @@ cv::Mat process_img(cv::Mat img)
     h_lines = remove_suspiciously_narrow_lines(h_lines, false, 0.75, 2.5);
     v_lines = remove_suspiciously_narrow_lines(v_lines, true, 0.75, 2.5);
 
-#if RETURN_MOZAIC == 1
     temp = img.clone();
     overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
     overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
     cv::hconcat(output_image1, temp, output_image1);
-#endif
 
-    h_lines = insert_missing_lines(h_lines, 1.7f, false);
-//    std::cout << "Before: " << v_lines.size();
-    v_lines = insert_missing_lines(v_lines, 1.7f, true);
+    h_lines = insert_missing_lines(h_lines, 1.5f, false);
+    v_lines = insert_missing_lines(v_lines, 1.5f, true);
     std::cout << "HLines: " << h_lines.size() << "\tVLines: " << v_lines.size() << "\n";
-//    std::cout << " After: " << v_lines.size() << "\n";
 
-    auto intersections = segment_intersections(h_lines, v_lines);
+    intersections = segment_intersections(h_lines, v_lines);
 
-    temp = img.clone();
-    overlay_lines(temp, v_lines, cv::Scalar(0, 255, 0));
-    overlay_lines(temp, h_lines, cv::Scalar(0, 0, 255));
-    overlay_markers(temp, intersections, cv::Scalar(255, 0, 0));
+    intersection_mat = img.clone();
+    overlay_lines(intersection_mat, v_lines, cv::Scalar(0, 255, 0));
+    overlay_lines(intersection_mat, h_lines, cv::Scalar(0, 0, 255));
+    overlay_markers(intersection_mat, intersections, cv::Scalar(255, 0, 0));
 
-#if RETURN_MOZAIC == 1
-    cv::hconcat(output_image1, temp, output_image1);
-    cv::Mat output_image;
+    cv::hconcat(output_image1, intersection_mat, output_image1);
 //    cv::copyMakeBorder(output_image1, output_image1, 0, 0, 0, 512, cv::BORDER_CONSTANT);
-    cv::vconcat(output_image0, output_image1, output_image);
-    return output_image;
-#else
-    return temp;
-#endif
+    cv::vconcat(output_image0, output_image1, mozaic);
+}
 
+
+cv::Mat perspective_transform(cv::Mat &image, cv::Vec2f top_l, cv::Vec2f top_r, cv::Vec2f bottom_l, cv::Vec2f bottom_r)
+{
+    float width_a = sqrt(((bottom_r[0] - bottom_l[0])*(bottom_r[0] - bottom_l[0])) + ((bottom_r[1] - bottom_l[1])*(bottom_r[1] - bottom_l[1])));
+    float width_b = sqrt(((top_r[0] - top_l[0])*(top_r[0] - top_l[0])) + ((top_r[1] - top_l[1])*(top_r[1] - top_l[1])));
+    float width = std::max(width_a, width_b);
+
+    float height_a = sqrt(((top_r[0] - bottom_r[0])*(top_r[0] - bottom_r[0])) + ((top_r[1] - bottom_r[1])*(top_r[1] - bottom_r[1])));
+    float height_b = sqrt(((top_l[0] - bottom_l[0])*(top_l[0] - bottom_l[0])) + ((top_l[1] - bottom_l[1])*(top_l[1] - bottom_l[1])));
+    float height = std::max(height_a, height_b);
+
+    cv::Point2f inputQuad[4];
+    inputQuad[0] = bottom_l;
+    inputQuad[1] = bottom_r;
+    inputQuad[2] = top_r;
+    inputQuad[3] = top_l;
+
+    cv::Point2f outputQuad[4];
+    outputQuad[0] = cv::Point2f(0,0);
+    outputQuad[1] = cv::Point2f(512,0);
+    outputQuad[2] = cv::Point2f(512,512);
+    outputQuad[3] = cv::Point2f(0,512);
+
+    auto matrix = cv::getPerspectiveTransform(inputQuad, outputQuad);
+
+    cv::Mat output;
+    cv::warpPerspective(image, output, matrix, cv::Size());
+    return output;
+}
+
+bool split_image_into_folder(cv::Mat &image, IntersectionsVec &intersections, std::string path)
+{
+    if(intersections.size() != 9)
+        return false;
+    for(auto& v : intersections)
+        if(v.size() != 9)
+            return false;
+
+    for(int i = 0; i < 8; i++)
+    {
+        for(int j = 7; j >= 0; j--)
+        {
+            auto cell = perspective_transform(image, intersections[i][j+1], intersections[i][j],
+                                                      intersections[i+1][j+1], intersections[i+1][j]);
+
+            cv::imwrite(path + std::to_string(i) + std::to_string(j) + ".jpg", cell);
+        }
+    }
+    return true;
 }

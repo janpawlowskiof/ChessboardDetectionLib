@@ -131,17 +131,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named OpenCVTest
+# Target rules for targets named ChessboardDetectionLib
 
 # Build rule for target.
-OpenCVTest: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 OpenCVTest
-.PHONY : OpenCVTest
+ChessboardDetectionLib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 ChessboardDetectionLib
+.PHONY : ChessboardDetectionLib
 
 # fast build rule for target.
-OpenCVTest/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/build
-.PHONY : OpenCVTest/fast
+ChessboardDetectionLib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/build
+.PHONY : ChessboardDetectionLib/fast
 
 chessboard_detection.o: chessboard_detection.cpp.o
 
@@ -149,7 +149,7 @@ chessboard_detection.o: chessboard_detection.cpp.o
 
 # target to build an object file
 chessboard_detection.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/chessboard_detection.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/chessboard_detection.cpp.o
 .PHONY : chessboard_detection.cpp.o
 
 chessboard_detection.i: chessboard_detection.cpp.i
@@ -158,7 +158,7 @@ chessboard_detection.i: chessboard_detection.cpp.i
 
 # target to preprocess a source file
 chessboard_detection.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/chessboard_detection.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/chessboard_detection.cpp.i
 .PHONY : chessboard_detection.cpp.i
 
 chessboard_detection.s: chessboard_detection.cpp.s
@@ -167,7 +167,7 @@ chessboard_detection.s: chessboard_detection.cpp.s
 
 # target to generate assembly for a file
 chessboard_detection.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/chessboard_detection.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/chessboard_detection.cpp.s
 .PHONY : chessboard_detection.cpp.s
 
 main.o: main.cpp.o
@@ -176,7 +176,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/main.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -185,7 +185,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/main.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -194,7 +194,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/OpenCVTest.dir/build.make CMakeFiles/OpenCVTest.dir/main.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChessboardDetectionLib.dir/build.make CMakeFiles/ChessboardDetectionLib.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 # Help Target
@@ -205,7 +205,7 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... OpenCVTest"
+	@echo "... ChessboardDetectionLib"
 	@echo "... chessboard_detection.o"
 	@echo "... chessboard_detection.i"
 	@echo "... chessboard_detection.s"
